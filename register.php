@@ -22,41 +22,70 @@ $email = "xbaranecd@stuba.sk";
 
 $psw_hash = password_hash($psw, PASSWORD_DEFAULT);
 */
-
+function test_input($data)
+{
+  $data = trim($data);
+  $data = stripslashes($data);
+  $data = htmlspecialchars($data);
+  return $data;
+}
+$emailErr = $nameErr = '';
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-  $sql = "SELECT * FROM user WHERE login=?";
-  $stmt = $conn->prepare($sql);
-  $stmt->execute([$_POST["uname"]]);
-  $user = $stmt->fetch(PDO::FETCH_ASSOC);
-  header('Location:register.php');
-  //var_dump($user);
-  if ($user != null) {
-    echo "<br>";
-    echo "user already exists";
-    echo "<br>";
+  $email = test_input($_POST["email"]);
+  // check if e-mail address is well-formed
+  if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    $emailErr = "Invalid email format";
   } else {
-    $login = $_POST["login"];
-    $psw = $_POST["psw"];
-    $meno = $_POST["name"];
-    $priezvisko = $_POST["surname"];
-    $email = $_POST["email"];
-    require_once 'PHPGangsta/GoogleAuthenticator.php';
 
-    $websiteTitle = 'MyWebsite';
-
-    $ga = new PHPGangsta_GoogleAuthenticator();
-
-    $secret = $ga->createSecret();
-
-    $psw_hash = password_hash($psw, PASSWORD_DEFAULT);
-    $sql = "INSERT INTO `user` (login,password,name, surname, email,secret) VALUES (?,?,?,?,?,?)";
+    $sql = "SELECT * FROM user WHERE login=?";
     $stmt = $conn->prepare($sql);
-    $stmt->execute([$login, $psw_hash, $meno, $priezvisko, $email,$secret]);
-    session_start();
-    $_SESSION['secret']=$secret;
-    $_SESSION['username'] = $_POST['login'];
-    $_SESSION['qa']=$ga->getQRCodeGoogleUrl($websiteTitle, $secret);
-    header('Location:log.php');
+    $stmt->execute([$_POST["login"]]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    // var_dump($user);
+    //header('Location:register.php');
+    //var_dump($user);
+    if ($user['id'] != null) {
+      $nameErr = "Login is already used, try other and submit your choice";
+      $name = test_input($_POST["login"]);
+      // check if name only contains letters and whitespace
+      if (!preg_match("/^[a-zA-Z-' ]*$/", $name)) {
+        $nameErr = "Only letters and white space allowed";
+      }
+
+      if (empty($_POST["email"])) {
+        $emailErr = "Email is required";
+      } else {
+        $email = test_input($_POST["email"]);
+        // check if e-mail address is well-formed
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+          $emailErr = "Invalid email format";
+        }
+      }
+    } else {
+      $login = $_POST["login"];
+      $psw = $_POST["psw"];
+      $meno = $_POST["name"];
+      $priezvisko = $_POST["surname"];
+      $email = $_POST["email"];
+      require_once 'PHPGangsta/GoogleAuthenticator.php';
+
+      $websiteTitle = 'MyWebsite';
+
+      $ga = new PHPGangsta_GoogleAuthenticator();
+
+      $secret = $ga->createSecret();
+
+      $psw_hash = password_hash($psw, PASSWORD_DEFAULT);
+      $sql = "INSERT INTO `user` (login,password,name, surname, email,secret) VALUES (?,?,?,?,?,?)";
+      $stmt = $conn->prepare($sql);
+      $stmt->execute([$login, $psw_hash, $meno, $priezvisko, $email, $secret]);
+      session_start();
+      $_SESSION['id']=$conn->lastInsertID();
+      $_SESSION['secret'] = $secret;
+      $_SESSION['username'] = $_POST['login'];
+      $_SESSION['qa'] = $ga->getQRCodeGoogleUrl($websiteTitle, $secret);
+      header('Location:log.php');
+    }
   }
 }
 //echo $psw_hash;
@@ -80,7 +109,7 @@ $stmt->execute([$login, $psw_hash, $meno, $priezvisko, $email]);
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 </head>
 
-<body>
+<body class="p-3 mb-2 bg-dark ">
   <div class="container">
 
     <form class="modal-content" action="register.php" method="post">
@@ -90,24 +119,50 @@ $stmt->execute([$login, $psw_hash, $meno, $priezvisko, $email]);
         <hr>
         <label for="login"><b>Login</b></label>
         <input type="text" placeholder="Enter login" name="login" required autocomplete="off">
-
+        <span class="error text-danger"> <?php echo $nameErr; ?></span>
+        <br>
+        <!-- Modal -->
+        <div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLongTitle">Modal title</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                ...
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary">Save changes</button>
+              </div>
+            </div>
+          </div>
+        </div>
         <label for="psw" id="psw"><b>Password</b></label>
         <input type="password" placeholder="Enter Password" name="psw" required autocomplete="off">
 
         <label for="meno"><b>Name</b></label>
         <input type="text" placeholder="Enter Name" name="name" required>
 
+
         <label for="priezvisko"><b>Surname</b></label>
         <input type="text" placeholder="Enter Surname" name="surname" required>
 
         <label for="email"><b>Email</b></label>
         <input type="text" placeholder="Enter Email" name="email" required>
-
+        <span class="error text-danger"> <?php echo $emailErr; ?></span>
+        <br><br>
 
 
         <button type="submit" class="signupbtn">Sign Up</button>
 
       </div>
+      <div class="container">
+                <span> <a href="login.php" class='btn btn-primary'>Back Log in</a></span>
+            </div>
     </form>
 
 

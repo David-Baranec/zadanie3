@@ -20,23 +20,24 @@ session_start();
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 </head>
 
-<body>
+<body class="p-3 mb-2 bg-dark text-white">
     <br>
     <div class="container">
         <?php
         if (isset($_SESSION['username']) && !empty($_SESSION['username'])) {
-            echo "Vitaj  " . $_SESSION['username'];
-            echo "<br>";
-            session_start();
+            echo "<h1>Vitaj  " . $_SESSION['username']."</h1>";
+            echo "<br><br><br>";
+            echo "<h2>Save Secret or scan QR code into your Google authenticator</h2> <br><br>";
             $secret=$_SESSION['secret'];
-            echo 'Secret is: ' . $secret . '<br />';
+            echo '<strong>Secret is: </strong>' . $secret . '<br /> <br> <br>';
             $qrCodeUrl = $_SESSION['qa'];
-            echo 'Google Charts URL QR-Code:<br /><img src="' . $qrCodeUrl . '" />';
+            echo 'Google Charts URL QR-Code:<br /><img src="' . $qrCodeUrl . '" /> <br>';
+            echo "<br>";
 
-            echo "<h1>Save Secret or scan QR code into your Google authenticator</h1>";
+            
         }
         ?>
-        <a href="check.php">Continue</a>
+        <a href="check.php"  class="btn btn-primary">Continue</a>
     </div>
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->

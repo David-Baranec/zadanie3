@@ -1,19 +1,37 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 require_once 'PHPGangsta/GoogleAuthenticator.php';
+require_once("config.php");
 
+$codeErr='';
+
+try {
+    $conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
+    // set the PDO error mode to exception
+    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    //echo "Connected successfully";
+} catch (PDOException $e) {
+    echo "Connection failed: " . $e->getMessage();
+}
 if (isset($_POST['code'])) {
     session_start();
     $secret=$_SESSION['secret'];
     $code = $_POST['code'];
-
+    $id=$_SESSION['id'];
     $ga = new PHPGangsta_GoogleAuthenticator();
     $result = $ga->verifyCode($secret, $code);
 
     if ($result == 1) {
+        $sql = "INSERT INTO loginlog (id_user,type, time_stamp) VALUES (?,?,?)";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([$id, 'registration', date('Y-m-d H:i:s')]);
         header("Location:index.php");
     } else {
-        session_destroy();
-        header("Location:login.php");
+        //session_destroy();
+        $codeErr="Wrong code inserted. Please try again.";
+        //header("Location:login.php");
     }
 }
 
@@ -32,13 +50,14 @@ if (isset($_POST['code'])) {
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 </head>
 
-<body>
+<body class="p-3 mb-2 bg-dark text-white">
     <div class="container">
         <form action="check.php" method="post">
             <div class="container">
                 <label for="uname"><b>Enter your code</b></label>
                 <input type="text" placeholder="Enter your code" name="code" required>
-
+                <span class="error text-danger"> <?php echo $codeErr; ?></span>
+                <br> <br><br>
 
                 <button type="submit">verify</button>
             </div>

@@ -15,22 +15,27 @@ try {
 } catch (PDOException $e) {
     echo "Connection failed: " . $e->getMessage();
 }
-
-
+$pswErr = '';
+$genErr='';
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $sql = "SELECT * FROM user WHERE login=?";
     $stmt = $conn->prepare($sql);
     $stmt->execute([$_POST["uname"]]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     //var_dump($user);
-    if (password_verify($_POST['psw'], $user['password'])) {
+    if ($user == null) {
+        $genErr="User does not exist. Use registration first.";
+    } else if (password_verify($_POST['psw'], $user['password'])) {
         $_SESSION['username'] = $user['login'];
-        $_SESSION['secret']=$user['secret'];
+        $_SESSION['id']=$user['id'];
+        $_SESSION['secret'] = $user['secret'];
 
-        $sql = "INSERT INTO loginlog (id_user,type, time_stamp) VALUES (?,?,?)";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([$user['id'], 'registracia', date('Y-m-d H:i:s')]);
+        //$sql = "INSERT INTO loginlog (id_user,type, time_stamp) VALUES (?,?,?)";
+        //$stmt = $conn->prepare($sql);
+       // $stmt->execute([$user['id'], 'registration', date('Y-m-d H:i:s')]);
         header('Location:check.php');
+    } else {
+        $pswErr = "Wrong password. Try again.";
     }
 }
 
@@ -63,26 +68,28 @@ $client->setRedirectUri($redirect_uri);
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 </head>
 
-<body>
+<body class="p-3 mb-2 bg-dark text-white">
     <div class="container">
         <form action="login.php" method="post">
             <div class="container">
                 <label for="uname"><b>Username</b></label>
                 <input type="text" placeholder="Enter Username" name="uname" required>
-
+                <span class="error text-danger"> <?php echo $genErr; ?></span>
+                <br> <br>
                 <label for="psw"><b>Password</b></label>
                 <input type="password" placeholder="Enter Password" name="psw" required>
-
+                <span class="error text-danger"> <?php echo $pswErr; ?></span>
+                <br> <br>
                 <button type="submit">Login</button>
             </div>
 
             <div class="container">
 
-              
-                <span> <?php echo "<a href='" . $client->createAuthUrl() . "'>Google Login</a>"; ?></span>
+
+                <span> <?php echo "<a href='" . $client->createAuthUrl() . "'  class='btn btn-primary'>Google Login</a>"; ?></span>
             </div>
             <div class="container">
-                <span > <a href="register.php">Registracia </a></span>
+                <span> <a href="register.php" class='btn btn-primary'>Registration </a></span>
             </div>
         </form>
 
